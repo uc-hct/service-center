@@ -9,10 +9,11 @@ import (
 const (
 	BROKER_ROOT_KEY                 = "cse-broker"
 	BROKER_PARTICIPANTS_KEY         = "participants"
-	BROKER_PARTICIPANTS_VERSION_KEY = "parties-versions"
-	BROKER_PARTIES_TAG_KEY          = "parties-tags"
+	BROKER_PARTICIPANTS_VERSION_KEY = "versions"
+	BROKER_PARTIES_TAG_KEY          = "tags"
 
-	BROKER_PACTS_KEY = "pacts"
+	BROKER_PACTS_KEY    = "pacts"
+	BOKER_PACTS_PUB_KEY = "pact-pub"
 )
 
 // GetBrokerRootKey returns url (/cse-broker)
@@ -32,7 +33,7 @@ func GetBrokerParticipantRootKey(tenant string) string {
 	}, "/")
 }
 
-// GetBrokerPartiesVersionRootKey returns url (/cse-broker/parties-versions/TENANT)
+// GetBrokerPartiesVersionRootKey returns url (/cse-broker/versions/TENANT)
 func GetBrokerPartiesVersionRootKey(tenant string) string {
 	return util.StringJoin([]string{
 		GetBrokerRootKey(),
@@ -41,7 +42,7 @@ func GetBrokerPartiesVersionRootKey(tenant string) string {
 	}, "/")
 }
 
-// GetBrokerPartiesTagRootKey returns url (/cse-broker/parties-tags/TENANT)
+// GetBrokerPartiesTagRootKey returns url (/cse-broker/tags/TENANT)
 func GetBrokerPartiesTagRootKey(tenant string) string {
 	return util.StringJoin([]string{
 		GetBrokerRootKey(),
@@ -59,7 +60,7 @@ func GenerateBrokerParticipantKey(tenant string, appID string, serviceName strin
 	}, "/")
 }
 
-// GenerateBrokerPartiesVersionKey returns url (/cse-broker/parties-versions/TENANT/PARTY_ID/NUMBER)
+// GenerateBrokerPartiesVersionKey returns url (/cse-broker/versions/TENANT/PARTY_ID/NUMBER)
 func GenerateBrokerPartiesVersionKey(tenant string, participantID int32, number string) string {
 	return util.StringJoin([]string{
 		GetBrokerPartiesVersionRootKey(tenant),
@@ -68,7 +69,7 @@ func GenerateBrokerPartiesVersionKey(tenant string, participantID int32, number 
 	}, "/")
 }
 
-// GenerateBrokerPartiesTagKey returns url (/cse-broker/parties-tag/TENANT/PARTICIPANT_ID/VERSION_ID)
+// GenerateBrokerPartiesTagKey returns url (/cse-broker/tags/TENANT/PARTICIPANT_ID/VERSION_ID)
 func GenerateBrokerPartiesTagKey(tenant string, participantID int32, versionID int32) string {
 	return util.StringJoin([]string{
 		GetBrokerPartiesTagRootKey(tenant),
@@ -86,6 +87,15 @@ func GetBrokerPactsRootKey(tenant string) string {
 	}, "/")
 }
 
+// GetBrokerPactsPubRootKey returns url (/cse-broker/pact-pub/TENANT)
+func GetBrokerPactsPubRootKey(tenant string) string {
+	return util.StringJoin([]string{
+		GetBrokerRootKey(),
+		BOKER_PACTS_PUB_KEY,
+		tenant,
+	}, "/")
+}
+
 // GenerateBrokerPactKey returns url (/cse-broker/pacts/TENANT/CONSUMER_ID/PROVIDER_ID/SHA
 func GenerateBrokerPactKey(tenant string, consumerID int32, providerID int32, sha []byte) string {
 	return util.StringJoin([]string{
@@ -93,5 +103,14 @@ func GenerateBrokerPactKey(tenant string, consumerID int32, providerID int32, sh
 		strconv.Itoa(int(consumerID)),
 		strconv.Itoa(int(providerID)),
 		string(sha),
+	}, "/")
+}
+
+// GenerateBrokerPactPubKey returns url (/cse-broker/pact-pub/TENANT/PARTY_ID/PCT_ID
+func GenerateBrokerPactPubKey(tenant string, participantVersionID int32, pactID int32) string {
+	return util.StringJoin([]string{
+		GetBrokerPactsRootKey(tenant),
+		strconv.Itoa(int(participantVersionID)),
+		strconv.Itoa(int(pactID)),
 	}, "/")
 }

@@ -14,14 +14,15 @@
 package store
 
 import (
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/ServiceComb/service-center/pkg/util"
 	apt "github.com/ServiceComb/service-center/server/core"
 	pb "github.com/ServiceComb/service-center/server/core/proto"
 	"github.com/ServiceComb/service-center/server/core/registry"
 	"golang.org/x/net/context"
-	"strconv"
-	"sync"
-	"time"
 )
 
 const (
@@ -37,22 +38,32 @@ const (
 	RULE_INDEX
 	DEPENDENCY
 	DEPENDENCY_RULE
+	BROKER_PARTICIPANT
+	BROKER_PARTICIPANT_VERSION
+	BROKER_PARTICIPANT_TAG
+	BROKER_PACT
+	BROKER_PACT_PUB
 	typeEnd
 )
 
 var TypeNames = []string{
-	SERVICE:         "SERVICE",
-	INSTANCE:        "INSTANCE",
-	DOMAIN:          "DOMAIN",
-	SCHEMA:          "SCHEMA",
-	RULE:            "RULE",
-	LEASE:           "LEASE",
-	SERVICE_INDEX:   "SERVICE_INDEX",
-	SERVICE_ALIAS:   "SERVICE_ALIAS",
-	SERVICE_TAG:     "SERVICE_TAG",
-	RULE_INDEX:      "RULE_INDEX",
-	DEPENDENCY:      "DEPENDENCY",
-	DEPENDENCY_RULE: "DEPENDENCY_RULE",
+	SERVICE:                    "SERVICE",
+	INSTANCE:                   "INSTANCE",
+	DOMAIN:                     "DOMAIN",
+	SCHEMA:                     "SCHEMA",
+	RULE:                       "RULE",
+	LEASE:                      "LEASE",
+	SERVICE_INDEX:              "SERVICE_INDEX",
+	SERVICE_ALIAS:              "SERVICE_ALIAS",
+	SERVICE_TAG:                "SERVICE_TAG",
+	RULE_INDEX:                 "RULE_INDEX",
+	DEPENDENCY:                 "DEPENDENCY",
+	DEPENDENCY_RULE:            "DEPENDENCY_RULE",
+	BROKER_PARTICIPANT:         "BROKER_PARTICIPANT",
+	BROKER_PARTICIPANT_VERSION: "BROKER_PARTICIPANT_VERSION",
+	BROKER_PARTICIPANT_TAG:     "BROKER_PARTICIPANT_TAG",
+	BROKER_PACT:                "BROKER_PACT",
+	BROKER_PACT_PUB:            "BROKER_PACT_PUB",
 }
 
 var TypeRoots = map[StoreType]string{
@@ -68,6 +79,12 @@ var TypeRoots = map[StoreType]string{
 	RULE_INDEX:      apt.GetServiceRuleIndexRootKey(""),
 	DEPENDENCY:      apt.GetServiceDependencyRootKey(""),
 	DEPENDENCY_RULE: apt.GetServiceDependencyRuleRootKey(""),
+	// Broker related types
+	BROKER_PARTICIPANT:         apt.GetBrokerParticipantRootKey(""),
+	BROKER_PARTICIPANT_VERSION: apt.GetBrokerPartiesVersionRootKey(""),
+	BROKER_PARTICIPANT_TAG:     apt.GetBrokerPartiesTagRootKey(""),
+	BROKER_PACT:                apt.GetBrokerPactsRootKey(""),
+	BROKER_PACT_PUB:            apt.GetBrokerPactsPubRootKey(""),
 }
 
 var store *KvStore
@@ -205,6 +222,13 @@ func (s *KvStore) store() {
 	s.newStore(SERVICE_TAG)
 	s.newStore(RULE)
 	s.newStore(RULE_INDEX)
+
+	//broker related entries
+	s.newStore(BROKER_PARTICIPANT)
+	s.newStore(BROKER_PARTICIPANT_VERSION)
+	s.newStore(BROKER_PARTICIPANT_TAG)
+	s.newStore(BROKER_PACT)
+	s.newStore(BROKER_PACT_PUB)
 	for _, i := range s.indexers {
 		<-i.Ready()
 	}
@@ -322,6 +346,35 @@ func (s *KvStore) DependencyRule() *Indexer {
 
 func (s *KvStore) Domain() *Indexer {
 	return s.indexers[DOMAIN]
+}
+
+/*
+pact related indexers
+*/
+
+//BrokerParticipant returns participant indexer
+func (s *KvStore) BrokerParticipant() *Indexer {
+	return s.indexers[BROKER_PARTICIPANT]
+}
+
+//BrokerVersion returns participant version indexer
+func (s *KvStore) BrokerVersion() *Indexer {
+	return s.indexers[BROKER_PARTICIPANT_VERSION]
+}
+
+//BrokerTag returns broker tag indexer
+func (s *KvStore) BrokerTag() *Indexer {
+	return s.indexers[BROKER_PARTICIPANT_TAG]
+}
+
+//BrokerPact returns broker pact indexer
+func (s *KvStore) BrokerPact() *Indexer {
+	return s.indexers[BROKER_PACT]
+}
+
+//BrokerPactPub returns broker pact_pub indexer
+func (s *KvStore) BrokerPactPub() *Indexer {
+	return s.indexers[BROKER_PACT_PUB]
 }
 
 func (s *KvStore) KeepAlive(ctx context.Context, opts ...registry.PluginOpOption) (int64, error) {

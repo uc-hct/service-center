@@ -31,16 +31,16 @@ message Pact {
 	bytes content = 5;
 }
 
-message PactVersion {
+message PactPublication {
 	int32 id = 1;
-	int32 versionId = 2;
+	int32 participantVersionId = 2;
 	int32 pactId = 3;
-	int32 providerParticipantId = 4;
+	int32 participantId = 4;
 }
 
 message Tag {
 	string name = 1;
-	int32 ParticipantVersionId = 2;
+	int32 participantVersionId = 2;
 }
 
 
