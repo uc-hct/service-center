@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package com.huawei.paas.cse.serviceregistry.api;
+
+option go_package = "proto";
+option java_package = "com.huawei.paas.cse.serviceregistry.api";
+
+
+/*
+Definitions of entry objects
+*/
+
+message Participant {
+	int32 id = 1;
+	string appId = 2;
+	string serviceName = 3;
+}
+
+message ParticipantVersion {
+	int32 id = 1;
+	string number = 2;
+	int32 participantId = 3;
+	int32 order = 4;
+}
+
+message Pact {
+	int32 id = 1;
+	int32 consumerParticipantId = 2;
+	int32 providerParticipantId = 3;
+	bytes sha = 4;
+	bytes content = 5;
+}
+
+message PactVersion {
+	int32 id = 1;
+	int32 versionId = 2;
+	int32 pactId = 3;
+	int32 providerParticipantId = 4;
+}
+
+message Tag {
+	string name = 1;
+	int32 ParticipantVersionId = 2;
+}
+
+
+/*
+Definitions of communication format
+*/
+
+message PublishPactRequest {
+  string providerId = 1;
+  string consumerId = 2;
+  string version = 3;
+  bytes pact = 4;
+}
+
+message Response {
+  enum Code {
+      UNKNOWN = 0;
+      SUCCESS = 1;
+      FAIL = 2;
+  }
+  Code code = 1;
+  string message = 2;
+}
+
+message PublishPactResponse {
+  Response response = 1;
+}
+
+message GetAllProviderPactsRequest {
+	string providerId = 1;
+}
+
+message ConsumerInfo {
+	string href = 1;
+	string name = 2;
+}
+
+message Links {
+	repeated ConsumerInfo pacts = 1;
+}
+
+message GetAllProviderPactsReponse {
+	Response response = 1;
+	Links _links = 2;
+}
+
+message GetProviderConsumerVersionPactRequest {
+	string providerId = 1;
+	string consumerId = 2;
+	string version = 3;
+}
+
+message GetProviderConsumerVersionPactResponse {
+	Response response = 1;
+	bytes pact = 2;
+}
