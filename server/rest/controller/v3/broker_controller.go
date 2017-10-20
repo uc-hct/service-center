@@ -1,9 +1,13 @@
 package v3
 
 import (
+	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/ServiceComb/service-center/pkg/rest"
+	"github.com/ServiceComb/service-center/pkg/util"
+	pb "github.com/ServiceComb/service-center/server/core/proto"
 	"github.com/ServiceComb/service-center/server/rest/controller"
 )
 
@@ -93,5 +97,21 @@ func (this *BrokerService) RetrieveTaggedPact(w http.ResponseWriter, r *http.Req
 //A pact is published to the broker using a combination of the provider name, the
 //consumer name, and the consumer application version.
 func (this *BrokerService) PublishPact(w http.ResponseWriter, r *http.Request) {
+	message, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		util.Logger().Error("body err", err)
+		controller.WriteText(http.StatusInternalServerError, fmt.Sprintf("body error %s", err.Error()), w)
+		return
+	}
+
+	request := &pb.PublishPactRequest{
+		ProviderId: r.URL.Query().Get(":providerId"),
+		ConsumerId: r.URL.Query().Get(":consumerId"),
+		Version:    r.URL.Query().Get(":number"),
+		Pact:       message,
+	}
+
+	resp, err := service.Pactbroker.PublishPact(r.Context(), request)
+	controller.WriteText(resp.GetResponse(), err, "pact publish success", w)
 
 }
