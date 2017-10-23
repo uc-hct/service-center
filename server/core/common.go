@@ -15,12 +15,13 @@ package core
 
 import (
 	"errors"
-	"github.com/ServiceComb/service-center/pkg/util"
-	"github.com/ServiceComb/service-center/pkg/validate"
-	pb "github.com/ServiceComb/service-center/server/core/proto"
 	"math"
 	"reflect"
 	"regexp"
+
+	"github.com/ServiceComb/service-center/pkg/util"
+	"github.com/ServiceComb/service-center/pkg/validate"
+	pb "github.com/ServiceComb/service-center/server/core/proto"
 )
 
 var (
@@ -49,6 +50,10 @@ var (
 
 	SchemaIdRule *validate.ValidateRule
 	TagRule      *validate.ValidateRule
+
+	//Broker related variables
+	BrokerServiceAPI   pb.BrokerServiceCtrlServer
+	BrokerReqValidator validate.Validator
 )
 
 func init() {
@@ -167,6 +172,9 @@ func init() {
 	GetInstanceValidator.AddRule("ProviderInstanceId", &validate.ValidateRule{Min: 1, Max: 64, Regexp: simpleNameAllowEmptyRegex})
 	GetInstanceValidator.AddRule("Tags", TagRule)
 	GetInstanceValidator.AddRule("Env", stageRule)
+
+	//Broker Related validators
+
 }
 
 func Validate(v interface{}) error {

@@ -6,6 +6,16 @@ option go_package = "proto";
 option java_package = "com.huawei.paas.cse.serviceregistry.api";
 
 /*
+Definitions of Services
+*/
+
+service BrokerServiceCtrl {
+		rpc publishPact (PublishPactRequest) returns (PublishPactResponse);
+}
+
+
+
+/*
 Definitions of entry objects
 */
 

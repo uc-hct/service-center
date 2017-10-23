@@ -7,6 +7,7 @@ import (
 
 	"github.com/ServiceComb/service-center/pkg/rest"
 	"github.com/ServiceComb/service-center/pkg/util"
+	"github.com/ServiceComb/service-center/server/core"
 	pb "github.com/ServiceComb/service-center/server/core/proto"
 	"github.com/ServiceComb/service-center/server/rest/controller"
 )
@@ -16,19 +17,32 @@ type BrokerService struct {
 	//
 }
 
+const (
+	BROKER_HOME_URL  = "/broker/v3/"
+	PARTICIPANTS_URL = "/broker/v3/participants"
+	PROVIDER_URL     = "/broker/v3/pacts/provider"
+)
+
 func (this *BrokerService) URLPatterns() []rest.Route {
 	return []rest.Route{
-		{rest.HTTP_METHOD_GET, "/broker/v3/", this.GetBrokerHome},
-		{rest.HTTP_METHOD_GET, "/broker/v3/participants", this.GetParticipants},
-		{rest.HTTP_METHOD_GET, "/broker/v3/participants/:participantId", this.GetParticipant},
-		{rest.HTTP_METHOD_GET, "/broker/v3/participants/:participantId/versions", this.GetParticipantVersions},
-		{rest.HTTP_METHOD_GET, "/broker/v3/participants/:participantId/versions/latest", this.GetParticipantLatstVersion},
-		{rest.HTTP_METHOD_GET, "/broker/v3/pacts/latest", this.GetPacts},
-		{rest.HTTP_METHOD_GET, "/broker/v3/pacts/provider/:providerId/latest", this.GetProviderPacts},
-		{rest.HTTP_METHOD_GET, "/broker/v3/pacts/provider/:providerId/consumer/:consumerId/latest", this.RetrievePact},
-		{rest.HTTP_METHOD_GET, "/broker/v3/pacts/provider/:providerId/consumer/:consumerId/latest/:tag", this.RetrieveTaggedPact},
-		{rest.HTTP_METHOD_GET, "/broker/v3/pacts/provider/:providerId/consumer/:consumerId/latest-untagged", this.RetrieveUntaggedPact},
-		{rest.HTTP_METHOD_POST, "/broker/v3/pacts/provider/:providerId/consumer/:consumerId/version/:number", this.PublishPact},
+		{rest.HTTP_METHOD_GET, BROKER_HOME_URL, this.GetBrokerHome},
+		{rest.HTTP_METHOD_GET, PARTICIPANTS_URL, this.GetParticipants},
+		{rest.HTTP_METHOD_GET, PARTICIPANTS_URL + "/:participantId", this.GetParticipant},
+		{rest.HTTP_METHOD_GET, PARTICIPANTS_URL + "/:participantId/versions",
+			this.GetParticipantVersions},
+		{rest.HTTP_METHOD_GET, PARTICIPANTS_URL + "/:participantId/versions/latest",
+			this.GetParticipantLatstVersion},
+		{rest.HTTP_METHOD_GET, BROKER_HOME_URL + "pacts/latest", this.GetPacts},
+		{rest.HTTP_METHOD_GET, PROVIDER_URL + "/:providerId/latest",
+			this.GetProviderPacts},
+		{rest.HTTP_METHOD_GET, PROVIDER_URL + "/:providerId/consumer/:consumerId/latest",
+			this.RetrievePact},
+		{rest.HTTP_METHOD_GET, PROVIDER_URL + "/:providerId/consumer/:consumerId/latest/:tag",
+			this.RetrieveTaggedPact},
+		{rest.HTTP_METHOD_GET, PROVIDER_URL + "/:providerId/consumer/:consumerId/latest-untagged",
+			this.RetrieveUntaggedPact},
+		{rest.HTTP_METHOD_POST, PROVIDER_URL + "/:providerId/consumer/:consumerId/version/:number",
+			this.PublishPact},
 	}
 }
 
@@ -37,7 +51,7 @@ func (this *BrokerService) GetBrokerHome(w http.ResponseWriter, r *http.Request)
 	homeResponse := "{\r\n" +
 		"  \"_links\": {\r\n" +
 		"    \"pb:latest-provider-pacts\": {\r\n" +
-		"      \"href\": \"http://localhost:30100/broker/v3/pacts/provider/{provider}/latest\",\r\n" +
+		"      \"href\": \"" + r.Host + PROVIDER_URL + "/{provider}/latest\",\r\n" +
 		"      \"title\": \"Latest pacts by provider\",\r\n" +
 		"      \"templated\": true\r\n" +
 		"    }\r\n" +
@@ -111,7 +125,6 @@ func (this *BrokerService) PublishPact(w http.ResponseWriter, r *http.Request) {
 		Pact:       message,
 	}
 
-	resp, err := service.Pactbroker.PublishPact(r.Context(), request)
-	controller.WriteText(resp.GetResponse(), err, "pact publish success", w)
-
+	resp, err := core.BrokerServiceAPI.PublishPact(r.Context(), request)
+	controller.WriteTextResponse(resp.GetResponse(), err, "pact publish success", w)
 }
