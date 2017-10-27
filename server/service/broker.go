@@ -2,7 +2,9 @@ package service
 
 import (
 	"crypto/sha1"
+	"errors"
 	_ "fmt"
+	"strings"
 
 	"github.com/ServiceComb/service-center/pkg/util"
 	apt "github.com/ServiceComb/service-center/server/core"
@@ -12,6 +14,81 @@ import (
 )
 
 type BrokerController struct {
+}
+
+func (s *BrokerController) GetParticipantVersions(ctx context.Context,
+	in *pb.GetParticipantsRequest) (*pb.GetParticipantVersionsResponse, error) {
+
+	if in == nil || in.PartyReqType == pb.GetParticipantsRequest_ALL_PARTIES || len(in.ParticipantId) == 0 {
+		util.Logger().Errorf(nil, "Get Participant versions request failed: invalid params.")
+		return &pb.GetParticipantVersionsResponse{
+			Response: pb.CreateResponse(pb.Response_FAIL, "Request format invalid."),
+		}, nil
+	}
+	participant, _, errBroker, errService :=
+		uServiceUtil.GetBrokerPartyFromServiceId(ctx, in.ParticipantId)
+
+	if errService != nil {
+		util.Logger().Errorf(nil,
+			"get participant failed, microService cannot be searched %s.", in.ParticipantId)
+		return &pb.GetParticipantVersionsResponse{
+			Response: pb.CreateResponse(pb.Response_FAIL,
+				"get participant version, Microservice cannot be searched."),
+		}, errService
+	}
+	if errBroker != nil || participant == nil {
+		util.Logger().Errorf(nil,
+			"participant does not exist for the serviceId (%s).", in.ParticipantId)
+		return &pb.GetParticipantVersionsResponse{
+			Response: pb.CreateResponse(pb.Response_FAIL,
+				"Particpant does not exist."),
+		}, errBroker
+	}
+
+	//check if we are looking for latest version or not
+	return nil, nil
+}
+
+func (s *BrokerController) GetParticipants(ctx context.Context,
+	in *pb.GetParticipantsRequest) (*pb.GetParticipantsResponse, error) {
+	return nil, nil
+}
+
+func (s *BrokerController) GetParticipant(ctx context.Context,
+	in *pb.GetParticipantsRequest) (*pb.GetParticipantResponse, error) {
+
+	if in == nil || in.PartyReqType == pb.GetParticipantsRequest_ALL_PARTIES || len(in.ParticipantId) == 0 {
+
+		util.Logger().Errorf(nil, "Get Participant request failed: invalid params.")
+		return &pb.GetParticipantResponse{
+			Response: pb.CreateResponse(pb.Response_FAIL, "Request format invalid."),
+		}, nil
+	}
+
+	participant, _, errBroker, errService :=
+		uServiceUtil.GetBrokerPartyFromServiceId(ctx, in.ParticipantId)
+
+	if errService != nil {
+		util.Logger().Errorf(nil,
+			"get participant failed, microService cannot be searched %s.", in.ParticipantId)
+		return &pb.GetParticipantResponse{
+			Response: pb.CreateResponse(pb.Response_FAIL,
+				"get participant, Microservice cannot be searched."),
+		}, errService
+	}
+	if errBroker != nil || participant == nil {
+		util.Logger().Errorf(nil,
+			"participant does not exist for the serviceId (%s).", in.ParticipantId)
+		return &pb.GetParticipantResponse{
+			Response: pb.CreateResponse(pb.Response_FAIL,
+				"Particpant does not exist."),
+		}, errBroker
+	}
+
+	return &pb.GetParticipantResponse{
+		Response:        pb.CreateResponse(pb.Response_SUCCESS, "Get Participant successfully."),
+		ParticipantInfo: uServiceUtil.CreateParticipantResponse(participant, "http://localhost/", in.ParticipantId),
+	}, nil
 }
 
 func (s *BrokerController) PublishPact(ctx context.Context,
@@ -26,6 +103,7 @@ func (s *BrokerController) PublishPact(ctx context.Context,
 
 	//TODO: add validator here
 	err := apt.Validate(in)
+
 	if err != nil {
 		util.Logger().Errorf(err,
 			"publish pact failed, providerId %s, consumerId %s: invalid parameters.",
@@ -34,15 +112,44 @@ func (s *BrokerController) PublishPact(ctx context.Context,
 			Response: pb.CreateResponse(pb.Response_FAIL, err.Error()),
 		}, nil
 	}
-	tenant := util.ParseTenantProject(ctx)
 
-	provider, err := uServiceUtil.GetService(ctx, tenant, in.ProviderId)
-	if err != nil {
-		util.Logger().Errorf(err,
+	consumerParticipant, consumer, _, errConsumerService :=
+		uServiceUtil.GetBrokerPartyFromServiceId(ctx, in.ConsumerId)
+
+	if errConsumerService != nil {
+		util.Logger().Errorf(errConsumerService,
+			"pact publish failed, providerId is %s: query provider failed.", in.ConsumerId)
+		return &pb.PublishPactResponse{
+			Response: pb.CreateResponse(pb.Response_FAIL, "Query consumer failed."),
+		}, errConsumerService
+	}
+
+	if consumer == nil {
+		util.Logger().Errorf(nil,
+			"pact publish failed, consumerId is %s: consumer not exist.", in.ConsumerId)
+		return &pb.PublishPactResponse{
+			Response: pb.CreateResponse(pb.Response_FAIL, "Consumer does not exist."),
+		}, errors.New("consumer does not exist.")
+	}
+
+	// check that the consumer has that vesion in the url
+	if strings.Compare(consumer.GetVersion(), in.Version) != 0 {
+		util.Logger().Errorf(nil,
+			"pact publish failed, version (%s) does not exist for consmer", in.Version)
+		return &pb.PublishPactResponse{
+			Response: pb.CreateResponse(pb.Response_FAIL, "Version does not exist."),
+		}, nil
+	}
+
+	providerParticipant, provider, _, errProviderService :=
+		uServiceUtil.GetBrokerPartyFromServiceId(ctx, in.ProviderId)
+
+	if errProviderService != nil {
+		util.Logger().Errorf(errProviderService,
 			"pact publish failed, providerId is %s: query provider failed.", in.ProviderId)
 		return &pb.PublishPactResponse{
 			Response: pb.CreateResponse(pb.Response_FAIL, "Query provider failed."),
-		}, err
+		}, errProviderService
 	}
 
 	if provider == nil {
@@ -50,41 +157,13 @@ func (s *BrokerController) PublishPact(ctx context.Context,
 			"pact publish failed, providerId is %s: provider not exist.", in.ProviderId)
 		return &pb.PublishPactResponse{
 			Response: pb.CreateResponse(pb.Response_FAIL, "Provider does not exist."),
-		}, nil
+		}, errors.New("provider does not exist.")
 	}
 
-	consumer, err := uServiceUtil.GetService(ctx, tenant, in.ConsumerId)
-
-	if err != nil {
-		util.Logger().Errorf(err,
-			"pact publish failed, consumerId is %s: query consumer failed.", in.ProviderId)
-		return &pb.PublishPactResponse{
-			Response: pb.CreateResponse(pb.Response_FAIL, "Query provider failed."),
-		}, err
-	}
-
-	if consumer == nil {
-		util.Logger().Errorf(nil,
-			"pact publish failed, consumerId is %s: consumer not exist.", in.ProviderId)
-		return &pb.PublishPactResponse{
-			Response: pb.CreateResponse(pb.Response_FAIL, "consumer does not exist."),
-		}, nil
-	}
-
-	// Get or create provider participant
-	providerParticipant, err := uServiceUtil.GetBrokerParticipantUtils(ctx, tenant,
-		provider.AppId, provider.ServiceName)
-
-	if err != nil {
-		util.Logger().Errorf(nil,
-			"pact publish failed, provider participant cannot be searched.", in.ProviderId)
-		return &pb.PublishPactResponse{
-			Response: pb.CreateResponse(pb.Response_FAIL,
-				"Provider participant cannot be searched."),
-		}, err
-	}
+	tenant := util.ParseTenantProject(ctx)
+	//create provider particpant if it does not exist
 	if providerParticipant == nil {
-		providerParticipant, err := uServiceUtil.AddBrokerParticipantIntoETCD(ctx, tenant,
+		providerParticipant, err = uServiceUtil.AddBrokerParticipantIntoETCD(ctx, tenant,
 			provider.AppId, provider.ServiceName)
 		if err != nil {
 			return &pb.PublishPactResponse{
@@ -92,42 +171,29 @@ func (s *BrokerController) PublishPact(ctx context.Context,
 			}, err
 		}
 	}
-
-	// Get or create provider participant
-	consumerParticipant, err := uServiceUtil.GetBrokerParticipantUtils(ctx, tenant,
-		consumer.AppId, consumer.ServiceName)
-
-	if err != nil {
-		util.Logger().Errorf(nil,
-			"pact publish failed, consumer participant cannot be searched.", in.ProviderId)
-		return &pb.PublishPactResponse{
-			Response: pb.CreateResponse(pb.Response_FAIL,
-				"Consumer participant cannot be searched."),
-		}, err
-	}
+	//create consumer particpant if it does not exist
 	if consumerParticipant == nil {
-		consumerParticipant, err := uServiceUtil.AddBrokerParticipantIntoETCD(ctx, tenant,
+		consumerParticipant, err = uServiceUtil.AddBrokerParticipantIntoETCD(ctx, tenant,
 			consumer.AppId, consumer.ServiceName)
 		if err != nil {
 			return &pb.PublishPactResponse{
-				Response: pb.CreateResponse(pb.Response_FAIL, "could not create provider."),
+				Response: pb.CreateResponse(pb.Response_FAIL, "could not create consumer."),
 			}, err
 		}
 	}
 
 	// Get or create version
-	// TODO: should we validate that the version is already in the service center?
 	consumerVersion, err := uServiceUtil.GetBrokerParticipantVersion(ctx, tenant,
 		consumerParticipant.Id, in.Version)
 	if err != nil {
-		util.Logger().Errorf(nil, "consumerVersion could not be retrieved", in.ProviderId)
+		util.Logger().Errorf(nil, "consumerVersion could not be retrieved for cosnumer ", in.ConsumerId)
 		return &pb.PublishPactResponse{
 			Response: pb.CreateResponse(pb.Response_FAIL, "Consumer version cannot be searched."),
 		}, err
 	}
 
 	if consumerVersion == nil {
-		consumerVersion, err := uServiceUtil.AddBrokerParticipantVersionIntoETCD(ctx, tenant,
+		consumerVersion, err = uServiceUtil.AddBrokerParticipantVersionIntoETCD(ctx, tenant,
 			consumerParticipant.Id, in.Version)
 		if err != nil {
 			return &pb.PublishPactResponse{
@@ -148,10 +214,9 @@ func (s *BrokerController) PublishPact(ctx context.Context,
 			Response: pb.CreateResponse(pb.Response_FAIL, "Pact cannot be searched."),
 		}, err
 	}
-
-	pactPubEntry := &pb.PactPublication{}
+	//pactPubEntry := &pb.PactPublication{}
 	if pactEntry == nil {
-		pactEntry, err := uServiceUtil.AddBrokerPactIntoETCD(ctx, tenant,
+		pactEntry, err = uServiceUtil.AddBrokerPactIntoETCD(ctx, tenant,
 			consumerParticipant.Id, providerParticipant.Id, sha, in.Pact)
 		if err != nil {
 			return &pb.PublishPactResponse{
@@ -159,7 +224,7 @@ func (s *BrokerController) PublishPact(ctx context.Context,
 			}, err
 		}
 		// crate pact publicaion
-		pactPubEntry, err := uServiceUtil.AddBrokerPctPublication(ctx, tenant,
+		_, err := uServiceUtil.AddBrokerPctPublication(ctx, tenant,
 			consumerParticipant.Id, providerParticipant.Id, pactEntry.Id)
 		if err != nil {
 			util.Logger().Errorf(err,
@@ -173,5 +238,4 @@ func (s *BrokerController) PublishPact(ctx context.Context,
 	return &pb.PublishPactResponse{
 		Response: pb.CreateResponse(pb.Response_SUCCESS, "Pact published successfully."),
 	}, nil
-
 }

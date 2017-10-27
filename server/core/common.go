@@ -174,7 +174,15 @@ func init() {
 	GetInstanceValidator.AddRule("Env", stageRule)
 
 	//Broker Related validators
+	BrokerReqValidator.AddRule("ProviderId", ServiceIdRule)
+	BrokerReqValidator.AddRule("ConsumerId", ServiceIdRule)
+	BrokerReqValidator.AddRule("Version", versionFuzzyRule)
+	//provider_id_url = ^(pacts/provider)/[a-zA-Z][a-zA-Z0-9_\-.]{0,63}
+	//provider_latest_url = provider_id_url = ^(pacts/provider)/[a-zA-Z][a-zA-Z0-9_\-.]{0,63}/latest
+	//consumer_id_url=provider_id_url = ^(pacts/provider)/[a-zA-Z][a-zA-Z0-9_\-.]{0,63}/consumer/[a-zA-Z][a-zA-Z0-9_\-.]{0,63}
 
+	//publish
+	//^(pacts/provider)/[a-zA-Z][a-zA-Z0-9_\-.]{0,63}/consumer/[a-zA-Z][a-zA-Z0-9_\-.]{0,63}/version/[a-zA-Z][a-zA-Z0-9_\-.]{0,63}
 }
 
 func Validate(v interface{}) error {
@@ -208,6 +216,8 @@ func Validate(v interface{}) error {
 		return FindInstanceReqValidator.Validate(v)
 	case *pb.GetOneInstanceRequest, *pb.GetInstancesRequest:
 		return GetInstanceValidator.Validate(v)
+	case *pb.PublishPactRequest:
+		return BrokerReqValidator.Validate(v)
 	default:
 		util.Logger().Errorf(nil, "No validator for %T.", t)
 		return nil

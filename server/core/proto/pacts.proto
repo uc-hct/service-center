@@ -11,6 +11,9 @@ Definitions of Services
 
 service BrokerServiceCtrl {
 		rpc publishPact (PublishPactRequest) returns (PublishPactResponse);
+		rpc getParticipant (GetParticipantsRequest) returns (GetParticipantResponse);
+		rpc getParticipants (GetParticipantsRequest) returns (GetParticipantsResponse);
+		rpc getParticipantVersions (GetParticipantsRequest) returns (GetParticipantVersionsResponse);
 }
 
 
@@ -64,6 +67,17 @@ message PublishPactRequest {
   bytes pact = 4;
 }
 
+message GetParticipantsRequest {
+	enum ParticipantType {
+			ALL_PARTIES = 0;
+			SINGLE_PARTY = 1;
+			LATEST_PARTY = 2;
+			VERSIONS_PARTY = 3;
+	}
+	ParticipantType partyReqType = 1;
+  string participantId = 2;
+  string urlPrefix = 3;
+}
 
 message Response {
   enum Code {
@@ -79,6 +93,7 @@ message PublishPactResponse {
   Response response = 1;
 }
 
+
 message GetAllProviderPactsRequest {
 	string providerId = 1;
 }
@@ -90,6 +105,27 @@ message ConsumerInfo {
 
 message Links {
 	repeated ConsumerInfo pacts = 1;
+}
+
+
+message ParticipantResponse {
+	string name = 1;
+	Links _links = 2;
+}
+
+
+message GetParticipantResponse {
+	Response response = 1;
+	ParticipantResponse participantInfo = 2;
+}
+
+message GetParticipantsResponse {
+	Response response = 1;
+	repeated ParticipantResponse participants = 2;
+}
+
+message GetParticipantVersionsResponse {
+	Response response = 1;
 }
 
 message GetAllProviderPactsReponse {
@@ -106,4 +142,23 @@ message GetProviderConsumerVersionPactRequest {
 message GetProviderConsumerVersionPactResponse {
 	Response response = 1;
 	bytes pact = 2;
+}
+
+
+message BrokerAPIEntryContent {
+	string href = 1;
+	string title = 2;
+	bool templated = 3;
+}
+
+message BrokerAPICuriesEntry {
+	string name = 1;
+	string href = 2;
+	bool templated = 3;
+}
+
+message BrokerHomeResponse {
+	Response response = 1;
+	map<string, BrokerAPIEntryContent> _links = 2;
+	repeated BrokerAPICuriesEntry curies = 3;
 }

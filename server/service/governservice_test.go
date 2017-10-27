@@ -15,6 +15,7 @@ package service_test
 
 import (
 	"fmt"
+
 	pb "github.com/ServiceComb/service-center/server/core/proto"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

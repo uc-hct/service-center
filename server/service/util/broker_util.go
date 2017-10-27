@@ -1,8 +1,10 @@
 package util
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"math"
 
 	"github.com/ServiceComb/service-center/pkg/util"
@@ -17,13 +19,16 @@ var participantVersionIds int32 = 0
 var pactIds int32 = 0
 var pactPubIds int32 = 0
 
+//GetBrokerParticipantUtils returns the participant from ETCD
 func GetBrokerParticipantUtils(ctx context.Context, tenant string, appId string,
 	serviceName string, opts ...registry.PluginOpOption) (*pb.Participant, error) {
+
 	key := apt.GenerateBrokerParticipantKey(tenant, appId, serviceName)
 	opts = append(opts, registry.WithStrKey(key))
 	participants, err := store.Store().BrokerParticipant().Search(ctx, opts...)
 
 	if err != nil {
+		util.Logger().Errorf(nil, "pact publish failed, participant with, could not be searched.")
 		return nil, err
 	}
 
@@ -35,6 +40,7 @@ func GetBrokerParticipantUtils(ctx context.Context, tenant string, appId string,
 	participant := &pb.Participant{}
 	err = json.Unmarshal(participants.Kvs[0].Value, participant)
 	if err != nil {
+		util.Logger().Errorf(nil, "pact publish failed, participant with id %d, could not be searched.")
 		return nil, err
 	}
 	util.Logger().Infof("GetParticipant: (%d, %s, %s)", participant.Id, participant.AppId,
@@ -42,8 +48,43 @@ func GetBrokerParticipantUtils(ctx context.Context, tenant string, appId string,
 	return participant, nil
 }
 
+//GetBrokerPartyFromServiceId returns the participant and the service from ETCD
+func GetBrokerPartyFromServiceId(ctx context.Context, serviceId string) (*pb.Participant,
+	*pb.MicroService, error, error) {
+
+	tenant := util.ParseTenantProject(ctx)
+	serviceParticipant, err := GetService(ctx, tenant, serviceId)
+	if err != nil {
+		util.Logger().Errorf(err,
+			"get participant failed, serviceId is %s: query provider failed.", serviceId)
+		return nil, nil, nil, err
+	}
+	if serviceParticipant == nil {
+		util.Logger().Errorf(nil,
+			"get participant failed, serviceId is %s: service not exist.", serviceId)
+		return nil, nil, nil, errors.New("get participant, serviceId not exist.")
+	}
+	// Get or create provider participant
+	participant, errBroker := GetBrokerParticipantUtils(ctx, tenant, serviceParticipant.AppId,
+		serviceParticipant.ServiceName)
+	if errBroker != nil {
+		util.Logger().Errorf(errBroker,
+			"get participant failed, serviceId %s: query participant failed.", serviceId)
+		return nil, serviceParticipant, errBroker, err
+	}
+	if participant == nil {
+		util.Logger().Errorf(nil,
+			"get participant failed, particpant does not exist for serviceId %s", serviceId)
+		return nil, serviceParticipant, errors.New("particpant does not exist for serviceId."), err
+	}
+
+	return participant, serviceParticipant, errBroker, nil
+}
+
+//AddBrokerParticipantIntoETCD adds the participant into ETCD
 func AddBrokerParticipantIntoETCD(ctx context.Context, tenant string, appId string,
 	serviceName string) (*pb.Participant, error) {
+
 	newParticipant := &pb.Participant{Id: participantIds, AppId: appId,
 		ServiceName: serviceName}
 	data, err := json.Marshal(newParticipant)
@@ -67,6 +108,7 @@ func AddBrokerParticipantIntoETCD(ctx context.Context, tenant string, appId stri
 
 func GetLatestBrokerParticipantVersion(ctx context.Context, tenant string, participantId int32,
 	opts ...registry.PluginOpOption) (*pb.ParticipantVersion, error) {
+
 	key := apt.GetBrokerAllPartyVersionsKey(tenant, participantId)
 	opts = append(opts, registry.WithStrKey(key))
 	participantVersions, err := store.Store().BrokerVersion().Search(ctx, opts...)
@@ -239,4 +281,39 @@ func AddBrokerPctPublication(ctx context.Context, tenant string,
 
 	pactPubIds++
 	return newPubPactEntry, nil
+}
+
+func CreateParticipantResponse(participant *pb.Participant, urlPrefix string, serviceId string) *pb.ParticipantResponse {
+	var bufferName bytes.Buffer
+	bufferName.WriteString(participant.GetAppId())
+	bufferName.WriteString("/")
+	bufferName.WriteString(participant.GetServiceName())
+
+	consumerInfoArr := make([]*pb.ConsumerInfo, 0)
+
+	selfConsumerInfo := &pb.ConsumerInfo{
+		Href: urlPrefix + "/participants/" + serviceId,
+		Name: "self",
+	}
+	latestConsumerInfo := &pb.ConsumerInfo{
+		Href: urlPrefix + "/participants/" + serviceId + "/versions/latest",
+		Name: "self",
+	}
+	versionsConsumerInfo := &pb.ConsumerInfo{
+		Href: urlPrefix + "/participants/" + serviceId + "/versions",
+		Name: "self",
+	}
+	consumerInfoArr = append(consumerInfoArr, selfConsumerInfo)
+	consumerInfoArr = append(consumerInfoArr, latestConsumerInfo)
+	consumerInfoArr = append(consumerInfoArr, versionsConsumerInfo)
+
+	links := &pb.Links{
+		Pacts: consumerInfoArr,
+	}
+
+	resp := &pb.ParticipantResponse{
+		Name:   bufferName.String(),
+		XLinks: links,
+	}
+	return resp
 }

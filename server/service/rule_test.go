@@ -15,11 +15,12 @@ package service_test
 
 import (
 	"fmt"
+	"strconv"
+
 	pb "github.com/ServiceComb/service-center/server/core/proto"
 	"github.com/ServiceComb/service-center/server/plugin/infra/quota/buildin"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"strconv"
 )
 
 var _ = Describe("ServiceController", func() {

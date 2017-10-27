@@ -31,7 +31,7 @@ func (this *BrokerService) URLPatterns() []rest.Route {
 		{rest.HTTP_METHOD_GET, PARTICIPANTS_URL + "/:participantId/versions",
 			this.GetParticipantVersions},
 		{rest.HTTP_METHOD_GET, PARTICIPANTS_URL + "/:participantId/versions/latest",
-			this.GetParticipantLatstVersion},
+			this.GetParticipantLastVersion},
 		{rest.HTTP_METHOD_GET, BROKER_HOME_URL + "pacts/latest", this.GetPacts},
 		{rest.HTTP_METHOD_GET, PROVIDER_URL + "/:providerId/latest",
 			this.GetProviderPacts},
@@ -51,7 +51,7 @@ func (this *BrokerService) GetBrokerHome(w http.ResponseWriter, r *http.Request)
 	homeResponse := "{\r\n" +
 		"  \"_links\": {\r\n" +
 		"    \"pb:latest-provider-pacts\": {\r\n" +
-		"      \"href\": \"" + r.Host + PROVIDER_URL + "/{provider}/latest\",\r\n" +
+		"      \"href\": \"http://" + r.Host + PROVIDER_URL + "/{provider}/latest\",\r\n" +
 		"      \"title\": \"Latest pacts by provider\",\r\n" +
 		"      \"templated\": true\r\n" +
 		"    }\r\n" +
@@ -63,23 +63,47 @@ func (this *BrokerService) GetBrokerHome(w http.ResponseWriter, r *http.Request)
 //GetParticipants returns all the participants in the broker.
 //Participant is a party that participates in a pact (ie. a Consumer or a Provider).
 func (this *BrokerService) GetParticipants(w http.ResponseWriter, r *http.Request) {
-
+	request := &pb.GetParticipantsRequest{
+		PartyReqType: pb.GetParticipantsRequest_ALL_PARTIES,
+		UrlPrefix:    "http://" + r.Host + PARTICIPANTS_URL,
+	}
+	resp, err := core.BrokerServiceAPI.GetParticipants(r.Context(), request)
+	controller.WriteTextResponse(resp.GetResponse(), err, "Get Participants response", w)
 }
 
 //GetParticipant returns a participant  in the broker.
 //Participant is a party that participates in a pact (ie. a Consumer or a Provider).
 func (this *BrokerService) GetParticipant(w http.ResponseWriter, r *http.Request) {
-
+	request := &pb.GetParticipantsRequest{
+		PartyReqType:  pb.GetParticipantsRequest_SINGLE_PARTY,
+		ParticipantId: r.URL.Query().Get(":participantId"),
+		UrlPrefix:     "http://" + r.Host + PARTICIPANTS_URL,
+	}
+	resp, err := core.BrokerServiceAPI.GetParticipant(r.Context(), request)
+	controller.WriteTextResponse(resp.GetResponse(), err, "get participant", w)
 }
 
 //GetParticipantVersions returns all the participant versions.
 func (this *BrokerService) GetParticipantVersions(w http.ResponseWriter, r *http.Request) {
+	request := &pb.GetParticipantsRequest{
+		PartyReqType:  pb.GetParticipantsRequest_VERSIONS_PARTY,
+		ParticipantId: r.URL.Query().Get(":participantId"),
+		UrlPrefix:     "http://" + r.Host + PARTICIPANTS_URL,
+	}
+	resp, err := core.BrokerServiceAPI.GetParticipantVersions(r.Context(), request)
+	controller.WriteTextResponse(resp.GetResponse(), err, "get participant versions", w)
 
 }
 
 //GetParticipantLatstVersion returns the latest ersion of a participant.
-func (this *BrokerService) GetParticipantLatstVersion(w http.ResponseWriter, r *http.Request) {
-
+func (this *BrokerService) GetParticipantLastVersion(w http.ResponseWriter, r *http.Request) {
+	request := &pb.GetParticipantsRequest{
+		PartyReqType:  pb.GetParticipantsRequest_LATEST_PARTY,
+		ParticipantId: r.URL.Query().Get(":participantId"),
+		UrlPrefix:     "http://" + r.Host + PARTICIPANTS_URL,
+	}
+	resp, err := core.BrokerServiceAPI.GetParticipantVersions(r.Context(), request)
+	controller.WriteTextResponse(resp.GetResponse(), err, "get participant versions", w)
 }
 
 //GetPacts returns all the latest pacts
