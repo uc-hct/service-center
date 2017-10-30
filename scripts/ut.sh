@@ -1,8 +1,11 @@
 #!/bin/sh
 set -e
+echo $GOPATH
+echo $(pwd)
 export COVERAGE_PATH=$(pwd)
-cd $1
-for d in $(go list ./... | grep -v vendor); do
+cd $COVERAGE_PATH
+#$1
+for d in $(go list ./... | grep server); do
     cd $GOPATH/src/$d
     if [ $(ls | grep _test.go | wc -l) -gt 0 ]; then
         go test -cover -covermode atomic -coverprofile coverage.out  

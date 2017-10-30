@@ -16,6 +16,19 @@ import (
 type BrokerController struct {
 }
 
+func (s *BrokerController) GetBrokerHome(ctx context.Context,
+	in *pb.BaseBrokerRequest) (*pb.BrokerHomeResponse, error) {
+
+	if in == nil || len(in.HostAddress) == 0 {
+		util.Logger().Errorf(nil, "Get Participant versions request failed: invalid params.")
+		return &pb.BrokerHomeResponse{
+			Response: pb.CreateResponse(pb.Response_FAIL, "Request format invalid."),
+		}, nil
+	}
+
+	return uServiceUtil.CreateBrokerHomeResponse(in.HostAddress, in.Scheme), nil
+}
+
 func (s *BrokerController) GetParticipantVersions(ctx context.Context,
 	in *pb.GetParticipantsRequest) (*pb.GetParticipantVersionsResponse, error) {
 
@@ -25,7 +38,7 @@ func (s *BrokerController) GetParticipantVersions(ctx context.Context,
 			Response: pb.CreateResponse(pb.Response_FAIL, "Request format invalid."),
 		}, nil
 	}
-	participant, _, errBroker, errService :=
+	participant, microservice, errBroker, errService :=
 		uServiceUtil.GetBrokerPartyFromServiceId(ctx, in.ParticipantId)
 
 	if errService != nil {
@@ -44,14 +57,44 @@ func (s *BrokerController) GetParticipantVersions(ctx context.Context,
 				"Particpant does not exist."),
 		}, errBroker
 	}
-
+	tenant := util.ParseTenantProject(ctx)
+	//serviceVersions, err := getServiceAllVersions(ctx, "tets", "test", "lol")
+	partyVersions, err := uServiceUtil.GetAllBrokerPartyVersions(ctx, tenant,
+		participant.Id)
+	if err != nil {
+		return &pb.GetParticipantVersionsResponse{
+			Response: pb.CreateResponse(pb.Response_FAIL,
+				"error finding participant versions"),
+		}, err
+	}
 	//check if we are looking for latest version or not
-	return nil, nil
+	return uServiceUtil.CreatePartyVersionsResponse(participant, partyVersions,
+		in.BrokerInfo.HostAddress, in.BrokerInfo.Scheme, microservice.GetServiceId()), nil
+
 }
 
 func (s *BrokerController) GetParticipants(ctx context.Context,
 	in *pb.GetParticipantsRequest) (*pb.GetParticipantsResponse, error) {
-	return nil, nil
+
+	if in == nil || in.PartyReqType != pb.GetParticipantsRequest_ALL_PARTIES {
+		util.Logger().Errorf(nil, "Get Participants request failed: invalid params.")
+		return &pb.GetParticipantsResponse{
+			Response: pb.CreateResponse(pb.Response_FAIL, "Request format invalid."),
+		}, nil
+	}
+	tenant := util.ParseTenantProject(ctx)
+	dataParticpants, err := uServiceUtil.GetBrokerParticipants(ctx, tenant)
+	if err != nil {
+		util.Logger().Errorf(err, "could not get the particpants")
+		return &pb.GetParticipantsResponse{
+			Response: pb.CreateResponse(pb.Response_FAIL, err.Error()),
+		}, nil
+	}
+
+	participantsResp := uServiceUtil.CreateParticipantsResponse(dataParticpants,
+		in.BrokerInfo.HostAddress, in.BrokerInfo.Scheme)
+
+	return participantsResp, nil
 }
 
 func (s *BrokerController) GetParticipant(ctx context.Context,
@@ -86,8 +129,9 @@ func (s *BrokerController) GetParticipant(ctx context.Context,
 	}
 
 	return &pb.GetParticipantResponse{
-		Response:        pb.CreateResponse(pb.Response_SUCCESS, "Get Participant successfully."),
-		ParticipantInfo: uServiceUtil.CreateParticipantResponse(participant, "http://localhost/", in.ParticipantId),
+		Response: pb.CreateResponse(pb.Response_SUCCESS, "Get Participant successfully."),
+		ParticipantInfo: uServiceUtil.CreateParticipantResponse(participant,
+			in.BrokerInfo.HostAddress, in.BrokerInfo.Scheme, in.ParticipantId),
 	}, nil
 }
 

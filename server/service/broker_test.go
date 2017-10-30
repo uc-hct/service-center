@@ -1,7 +1,9 @@
 package service_test
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/url"
 
 	pb "github.com/ServiceComb/service-center/server/core/proto"
 	. "github.com/onsi/ginkgo"
@@ -135,6 +137,24 @@ var _ = Describe("BrokerController", func() {
 				Expect(respPublishPact.GetResponse().Code).To(Equal(pb.Response_FAIL))
 			})
 
+			It("GetParticipants", func() {
+				fmt.Println("UT===========GetParticipants")
+
+				//(1) get Participant of the consumer
+				respGetAllParties, _ := brokerResource.GetParticipants(getContext(),
+					&pb.GetParticipantsRequest{
+						PartyReqType: pb.GetParticipantsRequest_ALL_PARTIES,
+						BrokerInfo: &pb.BaseBrokerRequest{
+							HostAddress: "localhost",
+							Scheme:      "http",
+						},
+					})
+				Expect(respGetAllParties.GetResponse().Code).To(Equal(pb.Response_SUCCESS))
+				responseJSON, _ := json.Marshal(respGetAllParties)
+				fmt.Println("UT===========GetAllParticipants----->," + string(responseJSON))
+
+				//fmt.Println("UT===========GetParticipant----->," + respGetParty.ParticipantInfo.GetName())
+			})
 			It("GetParticipant", func() {
 				fmt.Println("UT===========GetParticipant")
 
@@ -143,20 +163,45 @@ var _ = Describe("BrokerController", func() {
 					&pb.GetParticipantsRequest{
 						PartyReqType:  pb.GetParticipantsRequest_SINGLE_PARTY,
 						ParticipantId: consumerServiceId,
-						UrlPrefix:     "http://localhost/",
+						BrokerInfo: &pb.BaseBrokerRequest{
+							HostAddress: "localhost",
+							Scheme:      "http",
+						},
 					})
 				Expect(respGetConsumerParty.GetResponse().Code).To(Equal(pb.Response_SUCCESS))
-
+				responseJSON, _ := json.Marshal(respGetConsumerParty)
+				fmt.Println("UT===========GetParticipant----->," + string(responseJSON))
 				//(2) get Participant of the provider
 				respGetProviderParty, _ := brokerResource.GetParticipant(getContext(),
 					&pb.GetParticipantsRequest{
 						PartyReqType:  pb.GetParticipantsRequest_SINGLE_PARTY,
 						ParticipantId: providerServiceId,
-						UrlPrefix:     "http://localhost/",
+						BrokerInfo: &pb.BaseBrokerRequest{
+							HostAddress: "localhost",
+							Scheme:      "http",
+						},
 					})
 
 				Expect(respGetProviderParty.GetResponse().Code).To(Equal(pb.Response_SUCCESS))
 				//fmt.Println("UT===========GetParticipant----->," + respGetParty.ParticipantInfo.GetName())
+			})
+
+			It("GetParticipantVersions", func() {
+				fmt.Println("UT===========GetParticipantVersions")
+
+				//(1) get Participant of the consumer
+				respGetConsumerPartyVersions, _ := brokerResource.GetParticipantVersions(getContext(),
+					&pb.GetParticipantsRequest{
+						PartyReqType:  pb.GetParticipantsRequest_VERSIONS_PARTY,
+						ParticipantId: consumerServiceId,
+						BrokerInfo: &pb.BaseBrokerRequest{
+							HostAddress: "localhost",
+							Scheme:      "http",
+						},
+					})
+				Expect(respGetConsumerPartyVersions.GetResponse().Code).To(Equal(pb.Response_SUCCESS))
+				responseVersionsJSON, _ := json.Marshal(respGetConsumerPartyVersions)
+				fmt.Println("UT===========GetParticipantVersions----->," + string(responseVersionsJSON))
 			})
 
 			It("GetParticipant-noServiceId", func() {
@@ -166,9 +211,39 @@ var _ = Describe("BrokerController", func() {
 				respGetParty, _ := brokerResource.GetParticipant(getContext(), &pb.GetParticipantsRequest{
 					PartyReqType:  pb.GetParticipantsRequest_SINGLE_PARTY,
 					ParticipantId: TEST_BROKER_NO_SERVICE_ID,
-					UrlPrefix:     "http://localhost/",
+					BrokerInfo: &pb.BaseBrokerRequest{
+						HostAddress: "localhost",
+						Scheme:      "http",
+					},
 				})
 				Expect(respGetParty.GetResponse().Code).To(Equal(pb.Response_FAIL))
+
+			})
+
+			It("GetBrokerHome", func() {
+				fmt.Println("UT===========GetBrokerHome")
+
+				//(1) get Participant of the non-existingId
+				respGetHome, _ := brokerResource.GetBrokerHome(getContext(), &pb.BaseBrokerRequest{
+					HostAddress: "localhost",
+					Scheme:      "http",
+				})
+
+				serviceJSON, _ := json.Marshal(respGetHome)
+				fmt.Println("UT===========GetBrokerHome..%s\n", string(serviceJSON))
+				vPath := url.URL{
+					Scheme: "https",
+					Host:   "localhost",
+					Path:   "/broker/v3/participants/:participantId/versions",
+				}
+
+				myQuery := vPath.Query()
+
+				myQuery.Set(":participantId", "{participant}")
+				vPath.RawQuery = myQuery.Encode()
+
+				fmt.Println("UT===========GetBrokerHomeQuery..%s\n", vPath.String())
+				Expect(respGetHome).To(BeNil())
 
 			})
 		})

@@ -10,6 +10,7 @@ Definitions of Services
 */
 
 service BrokerServiceCtrl {
+		rpc getBrokerHome (BaseBrokerRequest) returns (BrokerHomeResponse);
 		rpc publishPact (PublishPactRequest) returns (PublishPactResponse);
 		rpc getParticipant (GetParticipantsRequest) returns (GetParticipantResponse);
 		rpc getParticipants (GetParticipantsRequest) returns (GetParticipantsResponse);
@@ -60,11 +61,24 @@ message Tag {
 Definitions of communication format
 */
 
+message BrokerAPIInfoEntry {
+	string href = 1;
+	string name = 2;
+	string title = 3;
+	bool templated = 4;
+}
+
+message BaseBrokerRequest {
+	string hostAddress = 1;
+	string scheme = 2;
+}
+
 message PublishPactRequest {
   string providerId = 1;
   string consumerId = 2;
   string version = 3;
   bytes pact = 4;
+	BaseBrokerRequest baseUrl = 5;
 }
 
 message GetParticipantsRequest {
@@ -76,7 +90,7 @@ message GetParticipantsRequest {
 	}
 	ParticipantType partyReqType = 1;
   string participantId = 2;
-  string urlPrefix = 3;
+  BaseBrokerRequest brokerInfo = 3;
 }
 
 message Response {
@@ -107,25 +121,45 @@ message Links {
 	repeated ConsumerInfo pacts = 1;
 }
 
+message BrokerPartyVersionResponse {
+	string number = 1;
+	map<string, BrokerAPIInfoEntry> _links = 2;
+}
+
+
+message BrokerPartyEmbeddedVersions {
+	repeated BrokerPartyVersionResponse versions = 1;
+}
 
 message ParticipantResponse {
 	string name = 1;
-	Links _links = 2;
+	map<string, BrokerAPIInfoEntry> _links = 2;
+	map<string, BrokerPartyVersionResponse> _embedded = 3;
 }
 
+
+
+message ParticipantsSummaryLinks {
+	BrokerAPIInfoEntry self = 1;
+	repeated BrokerAPIInfoEntry participants = 2;
+}
 
 message GetParticipantResponse {
 	Response response = 1;
 	ParticipantResponse participantInfo = 2;
 }
 
+
 message GetParticipantsResponse {
 	Response response = 1;
 	repeated ParticipantResponse participants = 2;
+	ParticipantsSummaryLinks _links = 3;
 }
 
 message GetParticipantVersionsResponse {
 	Response response = 1;
+	BrokerPartyEmbeddedVersions _embedded = 2;
+	map<string, BrokerAPIInfoEntry> _links= 3;
 }
 
 message GetAllProviderPactsReponse {
@@ -145,20 +179,20 @@ message GetProviderConsumerVersionPactResponse {
 }
 
 
-message BrokerAPIEntryContent {
-	string href = 1;
-	string title = 2;
-	bool templated = 3;
-}
-
-message BrokerAPICuriesEntry {
-	string name = 1;
-	string href = 2;
-	bool templated = 3;
-}
+// message BrokerAPIEntryContent {
+// 	string href = 1;
+// 	string title = 2;
+// 	bool templated = 3;
+// }
+//
+// message BrokerAPICuriesEntry {
+// 	string name = 1;
+// 	string href = 2;
+// 	bool templated = 3;
+// }
 
 message BrokerHomeResponse {
 	Response response = 1;
-	map<string, BrokerAPIEntryContent> _links = 2;
-	repeated BrokerAPICuriesEntry curies = 3;
+	map<string, BrokerAPIInfoEntry> _links = 2;
+	repeated BrokerAPIInfoEntry curies = 3;
 }
