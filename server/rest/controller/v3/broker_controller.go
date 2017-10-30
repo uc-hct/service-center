@@ -66,7 +66,7 @@ func (this *BrokerService) GetParticipants(w http.ResponseWriter, r *http.Reques
 			Scheme:      r.URL.Scheme,
 		},
 	}
-	resp, err := core.BrokerServiceAPI.GetParticipants(r.Context(), request)
+	resp, _ := core.BrokerServiceAPI.GetParticipants(r.Context(), request)
 	if resp.GetResponse().GetCode() != pb.Response_SUCCESS {
 		controller.WriteJson(http.StatusBadRequest, []byte(resp.Response.GetMessage()), w)
 	} else {
@@ -85,7 +85,7 @@ func (this *BrokerService) GetParticipant(w http.ResponseWriter, r *http.Request
 			Scheme:      r.URL.Scheme,
 		},
 	}
-	resp, err := core.BrokerServiceAPI.GetParticipant(r.Context(), request)
+	resp, _ := core.BrokerServiceAPI.GetParticipant(r.Context(), request)
 	if resp.GetResponse().GetCode() != pb.Response_SUCCESS {
 		controller.WriteJson(http.StatusBadRequest, []byte(resp.Response.GetMessage()), w)
 	} else {
@@ -103,7 +103,7 @@ func (this *BrokerService) GetParticipantVersions(w http.ResponseWriter, r *http
 			Scheme:      r.URL.Scheme,
 		},
 	}
-	resp, err := core.BrokerServiceAPI.GetParticipantVersions(r.Context(), request)
+	resp, _ := core.BrokerServiceAPI.GetParticipantVersions(r.Context(), request)
 	if resp.GetResponse().GetCode() != pb.Response_SUCCESS {
 		controller.WriteJson(http.StatusBadRequest, []byte(resp.Response.GetMessage()), w)
 	} else {
@@ -173,7 +173,7 @@ func (this *BrokerService) PublishPact(w http.ResponseWriter, r *http.Request) {
 		Pact:       message,
 	}
 
-	resp, err := core.BrokerServiceAPI.PublishPact(r.Context(), request)
+	resp, _ := core.BrokerServiceAPI.PublishPact(r.Context(), request)
 	if resp.GetResponse().GetCode() != pb.Response_SUCCESS {
 		controller.WriteJson(http.StatusBadRequest, []byte(resp.Response.GetMessage()), w)
 	} else {
