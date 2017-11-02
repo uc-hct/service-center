@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package com.huawei.paas.cse.serviceregistry.api;
+
+option go_package = "proto";
+option java_package = "com.huawei.paas.cse.serviceregistry.api";
+
+
+//CS Broker
+
+/*
+ Definitions of Services
+*/
+
+
+service BrokerServiceCtrl {
+    rpc getBrokerHome (BaseBrokerRequest) returns (BrokerHomeResponse);
+    rpc publishPact (PublishPactRequest) returns (PublishPactResponse);
+}
+
+/*
+ Definitions of entry objects
+*/
+
+//Represents microservice in the broker system
+message Participant {
+  	int32 id = 1;
+    string appId = 2;
+    string serviceName = 3;
+}
+
+//Represents version of the participant
+message ParticipantVersion {
+  	int32 id = 1;
+    string number = 2;
+    int32 participantId = 3;
+    int32 order = 4;
+}
+
+//Holds information about the request. Needed to generate the body information
+message BaseBrokerRequest {
+  	string hostAddress = 1;
+  	string scheme = 2;
+}
+
+message PublishPactRequest {
+    string providerId = 1;
+    string consumerId = 2;
+    string version = 3;
+    bytes pact = 4;
+  	BaseBrokerRequest baseUrl = 5;
+}
+
+message BrokerAPIInfoEntry {
+  	string href = 1;
+  	string name = 2;
+  	string title = 3;
+  	bool templated = 4;
+}
+
+message Response {
+  enum Code {
+      UNKNOWN = 0;
+      SUCCESS = 1;
+      FAIL = 2;
+  }
+  Code code = 1;
+  string message = 2;
+}
+
+message PublishPactResponse {
+    Response response = 1;
+}
+
+message GetParticipantsRequest {
+  	enum ParticipantType {
+  			ALL_PARTIES = 0;
+  			SINGLE_PARTY = 1;
+  			LATEST_PARTY = 2;
+  			VERSIONS_PARTY = 3;
+  	}
+    BaseBrokerRequest brokerInfo = 1;
+  	ParticipantType partyReqType = 2;
+    string participantId = 3;
+}
+
+message BrokerHomeResponse {
+  	Response response = 1;
+  	map<string, BrokerAPIInfoEntry> _links = 2;
+  	repeated BrokerAPIInfoEntry curies = 3;
+}

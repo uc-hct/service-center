@@ -16,8 +16,12 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"time"
+
 	errorsEx "github.com/ServiceComb/service-center/pkg/errors"
 	"github.com/ServiceComb/service-center/pkg/util"
+	"github.com/ServiceComb/service-center/server/core"
 	apt "github.com/ServiceComb/service-center/server/core"
 	pb "github.com/ServiceComb/service-center/server/core/proto"
 	"github.com/ServiceComb/service-center/server/core/registry"
@@ -27,9 +31,6 @@ import (
 	"github.com/ServiceComb/service-center/server/plugin/dynamic"
 	serviceUtil "github.com/ServiceComb/service-center/server/service/util"
 	"golang.org/x/net/context"
-	"strconv"
-	"time"
-	"github.com/ServiceComb/service-center/server/core"
 )
 
 type ServiceController struct {
@@ -180,7 +181,7 @@ func (s *ServiceController) CreateServicePri(ctx context.Context, in *pb.CreateS
 	}, nil
 }
 
-func checkBeforeCreate(ctx context.Context, tenant string)  (quota.QuotaReporter, error) {
+func checkBeforeCreate(ctx context.Context, tenant string) (quota.QuotaReporter, error) {
 	if core.ISSCSelf(ctx) {
 		util.Logger().Infof("it is service-center")
 		return nil, nil
@@ -630,7 +631,7 @@ func (s *ServiceController) Exist(ctx context.Context, in *pb.GetExistenceReques
 		return &pb.GetExistenceResponse{
 			Response: pb.CreateResponse(pb.Response_SUCCESS, "Schema exist."),
 			SchemaId: in.SchemaId,
-			Summary: schemaSummary,
+			Summary:  schemaSummary,
 		}, nil
 	default:
 		util.Logger().Warnf(nil, "unexpected type '%s' for query.", in.Type)

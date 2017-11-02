@@ -14,6 +14,8 @@
 package service_test
 
 import (
+	"testing"
+
 	"github.com/ServiceComb/service-center/pkg/util"
 	"github.com/ServiceComb/service-center/server"
 	"github.com/ServiceComb/service-center/server/core"
@@ -25,7 +27,6 @@ import (
 	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
-	"testing"
 )
 
 const (
@@ -43,12 +44,17 @@ var serviceResource pb.ServiceCtrlServer
 var insResource pb.SerivceInstanceCtrlServerEx
 var governService pb.GovernServiceCtrlServerEx
 
+//broker test variables
+var brokerResource pb.BrokerServiceCtrlServer
+
 var _ = BeforeSuite(func() {
 	//init plugin
 	server.InitAPI()
 	serviceResource = core.ServiceAPI
 	insResource = core.InstanceAPI
 	governService = core.GovernServiceAPI
+	//brokerResource
+	brokerResource = core.BrokerServiceAPI
 })
 
 func getContext() context.Context {
